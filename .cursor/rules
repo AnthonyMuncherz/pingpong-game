@@ -1,0 +1,109 @@
+# Ping Pong Multiplayer Game - Project Rules & Memory Bank
+
+## Project Overview
+- **Type**: Real-time multiplayer ping pong game
+- **Tech Stack**: Next.js 15 + TypeScript + Socket.io + Tailwind CSS
+- **Architecture**: Custom server with Socket.io for real-time communication
+- **Comments**: Casual Malay (not AI-ish, use short forms like utk, dgn)
+- **Output**: Always in English
+
+## Key Files Structure
+```
+pingpong-game/
+├── server.js                     # Custom server dgn Socket.io integration  
+├── src/
+│   ├── app/
+│   │   ├── page.tsx              # Main page - imports PingPongGame component
+│   │   └── api/socket/route.ts   # Backup Socket.io API route
+│   ├── components/
+│   │   └── PingPongGame.tsx      # Main game component dgn canvas rendering
+│   └── hooks/
+│       └── useSocket.ts          # Socket.io hook utk state management
+```
+
+## Game Features Implemented
+- [x] Real-time multiplayer via Socket.io
+- [x] Room-based system dgn 6-digit codes
+- [x] Canvas-based game rendering
+- [x] Keyboard controls (Arrow keys + WASD)
+- [x] Score tracking (first to 5 wins)
+- [x] Ball physics dgn collision detection
+- [x] Player disconnect handling
+- [x] Responsive UI dgn Tailwind
+
+## Socket.io Events Architecture
+### Client → Server:
+- `join-room` - Join/create room dgn player name
+- `paddle-move` - Move paddle up/down
+- `disconnect` - Auto cleanup when player leaves
+
+### Server → Client:
+- `room-joined` - Success join dgn room code & player ID
+- `room-error` - Error messages (room full, etc)
+- `game-start` - Start when 2 players ready
+- `game-update` - Real-time state updates at 60 FPS
+- `player-left` - Handle disconnections
+
+## Game Settings (Tunable Constants)
+```javascript
+CANVAS_WIDTH: 800
+CANVAS_HEIGHT: 400  
+PADDLE_HEIGHT: 80
+PADDLE_WIDTH: 10
+BALL_SIZE: 10
+BALL_SPEED: 5
+PADDLE_SPEED: 8
+WINNING_SCORE: 5
+```
+
+## Development Patterns
+- Use custom server.js instead of Next.js default utk Socket.io
+- Game state stored in Map on server side
+- React hooks utk socket connection management
+- Canvas rendering in useEffect dgn dependencies
+- TypeScript interfaces utk type safety
+- Error boundaries utk graceful failure handling
+
+## Debugging Notes
+- Socket.io debug: `DEBUG=socket.io* node server.js`
+- Check browser console utk connection status
+- Monitor server logs utk room management
+- Canvas rendering issues: check gameSettings & gameRoom state
+
+## Performance Optimizations
+- 60 FPS game loop on server
+- Only emit updates when state changes
+- Efficient collision detection algorithms
+- Room cleanup when empty to prevent memory leaks
+
+## Next Development Tasks
+1. Mobile touch controls
+2. Sound effects integration
+3. Power-ups system
+4. Spectator mode
+5. Tournament brackets
+6. Player statistics
+7. AI opponent mode
+
+## Common Issues & Solutions
+- **Socket connection failed**: Check CORS settings & port 3000
+- **Canvas not rendering**: Verify gameSettings loaded before rendering
+- **Paddle not moving**: Ensure paddle-move events reaching server
+- **Room code invalid**: Check uppercase conversion & 6-char limit
+
+## Deployment Checklist
+- [ ] Update CORS origins for production domain
+- [ ] Set NODE_ENV=production
+- [ ] Configure websocket transport priorities
+- [ ] Test on mobile devices
+- [ ] Verify room cleanup works properly
+
+## Code Style Guidelines
+- Comments in casual Malay (utk instead of untuk, dgn instead of dengan)
+- Function names in English
+- Use descriptive variable names
+- TypeScript strict mode enabled
+- Consistent indentation (2 spaces)
+- Import order: React → External → Internal
+
+Remember: Always test multiplayer functionality dgn 2 browser windows! 
