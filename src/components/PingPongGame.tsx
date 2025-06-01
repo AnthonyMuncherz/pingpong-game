@@ -170,7 +170,7 @@ export const PingPongGame: React.FC = () => {
       case 'waiting':
         return `Tunggu player lain... Room Code: ${roomCode}`;
       case 'playing':
-        return 'Game dah start! Gunakan ↑↓ atau W/S utk control paddle';
+        return 'Game dah start! Move mouse up/down utk control paddle';
       case 'finished':
         const winner = gameRoom.players.find(p => p.score >= (gameSettings?.WINNING_SCORE || 5));
         return `Game habis! ${winner?.name} menang! 🎉`;
