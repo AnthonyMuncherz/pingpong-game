@@ -11,6 +11,9 @@ export const PingPongGame: React.FC = () => {
   const [showGame, setShowGame] = useState(false);
   const [mouseY, setMouseY] = useState(0);
   const [gameResult, setGameResult] = useState<'won' | 'lost' | null>(null);
+  const [linkCopied, setLinkCopied] = useState(false);
+  const [showJoinModal, setShowJoinModal] = useState(false);
+  const [roomCodeFromLink, setRoomCodeFromLink] = useState<string>('');
 
   const {
     connected,
@@ -68,6 +71,20 @@ export const PingPongGame: React.FC = () => {
     };
   }, [movePaddle, gameSettings, canvasRef, gameRoom, playerId, showGame]);
 
+  // Handle URL parameters for auto-join
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !showGame && !showJoinModal) {
+      const urlParams = new URLSearchParams(window.location.search);
+      const roomCodeFromUrl = urlParams.get('roomCode');
+      if (roomCodeFromUrl && roomCodeFromUrl.length === 6) {
+        setRoomCodeFromLink(roomCodeFromUrl.toUpperCase());
+        setShowJoinModal(true);
+        // Clear URL parameter to avoid showing modal again
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    }
+  }, [showGame, showJoinModal]);
+
   // Handle countdown audio effects
   useEffect(() => {
     if (!timerAudio) return; // Skip if audio not available (SSR)
@@ -109,6 +126,37 @@ export const PingPongGame: React.FC = () => {
       setGameResult(null);
     }
   }, [gameRoom?.gameState, gameRoom?.players, playerId, gameSettings, timerAudio, gameResult]);
+
+  // Generate shareable room link
+  const generateRoomLink = () => {
+    if (typeof window !== 'undefined' && roomCode) {
+      return `${window.location.origin}${window.location.pathname}?roomCode=${roomCode}`;
+    }
+    return '';
+  };
+
+  // Copy room link to clipboard
+  const copyRoomLink = async () => {
+    const link = generateRoomLink();
+    if (link) {
+      try {
+        await navigator.clipboard.writeText(link);
+        setLinkCopied(true);
+        setTimeout(() => setLinkCopied(false), 2000); // Reset after 2 seconds
+      } catch (err) {
+        console.error('Failed to copy link:', err);
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = link;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        setLinkCopied(true);
+        setTimeout(() => setLinkCopied(false), 2000);
+      }
+    }
+  };
 
   // Render game on canvas
   useEffect(() => {
@@ -217,6 +265,23 @@ export const PingPongGame: React.FC = () => {
     }
   };
 
+  const handleJoinFromModal = () => {
+    if (playerName.trim() && roomCodeFromLink) {
+      // Enable audio on user interaction
+      if (timerAudio && timerAudio.audioContext?.state === 'suspended') {
+        timerAudio.audioContext.resume();
+      }
+      joinRoom(roomCodeFromLink, playerName.trim());
+      setShowJoinModal(false);
+      setShowGame(true);
+    }
+  };
+
+  const handleCloseModal = () => {
+    setShowJoinModal(false);
+    setRoomCodeFromLink('');
+  };
+
   const getGameStatusText = () => {
     if (!gameRoom) return '';
     
@@ -244,6 +309,55 @@ export const PingPongGame: React.FC = () => {
     }
   };
 
+  // Join Room Modal
+  const JoinRoomModal = () => (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-gray-800 p-8 rounded-lg shadow-lg max-w-md w-full mx-4 border border-gray-600">
+        <div className="text-center mb-6">
+          <h2 className="text-2xl font-bold text-white mb-2">🏓 Join Ping Pong Game</h2>
+          <p className="text-gray-300 text-sm">You've been invited to join room:</p>
+          <div className="bg-gray-700 p-3 rounded-lg mt-2 border border-gray-600">
+            <span className="text-blue-400 font-mono text-lg">{roomCodeFromLink}</span>
+          </div>
+        </div>
+
+        <div className="mb-6">
+          <label className="block text-sm font-medium mb-2 text-gray-300">Enter Your Name:</label>
+          <input
+            type="text"
+            value={playerName}
+            onChange={(e) => setPlayerName(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && handleJoinFromModal()}
+            className="w-full p-3 bg-gray-700 rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none text-white"
+            placeholder="Your awesome name"
+            maxLength={20}
+            autoFocus
+          />
+        </div>
+
+        <div className="flex space-x-3">
+          <button
+            onClick={handleJoinFromModal}
+            disabled={!playerName.trim()}
+            className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed p-3 rounded-lg font-medium transition-colors text-white"
+          >
+            {!playerName.trim() ? 'Enter Name First' : `Join as ${playerName}`}
+          </button>
+          <button
+            onClick={handleCloseModal}
+            className="px-4 py-3 bg-gray-600 hover:bg-gray-700 rounded-lg font-medium transition-colors text-white"
+          >
+            Cancel
+          </button>
+        </div>
+
+        <p className="text-xs text-gray-500 mt-4 text-center">
+          You can also press Enter to join quickly!
+        </p>
+      </div>
+    </div>
+  );
+
   if (!connected) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-900 text-white">
@@ -251,6 +365,7 @@ export const PingPongGame: React.FC = () => {
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-4"></div>
           <p>Connecting to server...</p>
         </div>
+        {showJoinModal && <JoinRoomModal />}
       </div>
     );
   }
@@ -285,14 +400,21 @@ export const PingPongGame: React.FC = () => {
             <div className="text-center text-gray-400">or</div>
 
             <div>
-              <input
-                type="text"
-                value={inputRoomCode}
-                onChange={(e) => setInputRoomCode(e.target.value.toUpperCase())}
-                className="w-full p-3 bg-gray-700 rounded-lg border border-gray-600 focus:border-green-500 focus:outline-none mb-2"
-                placeholder="Room Code (6 characters)"
-                maxLength={6}
-              />
+              <div className="relative">
+                <input
+                  type="text"
+                  value={inputRoomCode}
+                  onChange={(e) => setInputRoomCode(e.target.value.toUpperCase())}
+                  className="w-full p-3 bg-gray-700 rounded-lg border border-gray-600 focus:border-green-500 focus:outline-none mb-2"
+                  placeholder="Room Code (6 characters)"
+                  maxLength={6}
+                />
+                {inputRoomCode && (
+                  <div className="absolute right-3 top-3 text-green-400 text-sm">
+                    {inputRoomCode.length === 6 ? '✓' : `${inputRoomCode.length}/6`}
+                  </div>
+                )}
+              </div>
               <button
                 onClick={handleJoinRoom}
                 disabled={!playerName.trim() || !inputRoomCode.trim()}
@@ -300,6 +422,12 @@ export const PingPongGame: React.FC = () => {
               >
                 Join Room {(!playerName.trim() || !inputRoomCode.trim()) && '(Enter name & room code)'}
               </button>
+              
+              {inputRoomCode && (
+                <p className="text-xs text-blue-400 mt-2 text-center">
+                  🔗 Room code loaded from link!
+                </p>
+              )}
             </div>
           </div>
 
@@ -309,6 +437,7 @@ export const PingPongGame: React.FC = () => {
             </div>
           )}
         </div>
+        {showJoinModal && <JoinRoomModal />}
       </div>
     );
   }
@@ -319,9 +448,37 @@ export const PingPongGame: React.FC = () => {
         <h1 className="text-2xl font-bold mb-2">🏓 Ping Pong Game</h1>
         <p className="text-lg">{getGameStatusText()}</p>
         {gameRoom?.gameState === 'waiting' && (
-          <p className="text-sm text-gray-400 mt-2">
-            Share room code "{roomCode}" with your friend to start playing!
-          </p>
+          <div className="mt-4 space-y-3">
+            <p className="text-sm text-gray-400">
+              Share room code "{roomCode}" with your friend to start playing!
+            </p>
+            
+            <div className="bg-gray-800 p-4 rounded-lg border border-gray-600">
+              <p className="text-xs text-gray-400 mb-2">🔗 Shareable Link:</p>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="text"
+                  value={generateRoomLink()}
+                  readOnly
+                  className="flex-1 bg-gray-700 text-sm text-gray-200 p-2 rounded border border-gray-600 focus:outline-none cursor-pointer"
+                  onClick={copyRoomLink}
+                />
+                <button
+                  onClick={copyRoomLink}
+                  className={`px-3 py-2 rounded text-xs font-medium transition-colors ${
+                    linkCopied 
+                      ? 'bg-green-600 text-white' 
+                      : 'bg-blue-600 hover:bg-blue-700 text-white'
+                  }`}
+                >
+                  {linkCopied ? '✓ Copied!' : '📋 Copy'}
+                </button>
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                Click the link or copy button to share with your friend!
+              </p>
+            </div>
+          </div>
         )}
         
         {/* Ready Check Button */}

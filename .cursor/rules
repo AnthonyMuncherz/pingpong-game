@@ -38,6 +38,11 @@ pingpong-game/
 - [x] Victory song when player wins (celebratory melody)
 - [x] Defeat song when player loses (sad descending melody)
 - [x] Personalized win/lose messages with emojis
+- [x] Shareable room links for easy friend invites
+- [x] Auto-join from URL parameters
+- [x] Copy-to-clipboard functionality
+- [x] Join room modal popup for shared links
+- [x] Direct join flow from link clicks
 
 ## Socket.io Events Architecture
 ### Client → Server:
