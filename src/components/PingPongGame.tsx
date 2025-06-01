@@ -390,17 +390,6 @@ export const PingPongGame: React.FC = () => {
 
       {gameRoom?.gameState === 'finished' && (
         <div className="mt-4 text-center">
-          {gameResult && (
-            <div className={`mb-4 p-4 rounded-lg ${gameResult === 'won' ? 'bg-green-900 border-green-500' : 'bg-red-900 border-red-500'} border-2`}>
-              <div className={`text-4xl mb-2 ${gameResult === 'won' ? 'animate-bounce' : 'animate-pulse'}`}>
-                {gameResult === 'won' ? '🎵🎉🏆🎉🎵' : '🎵💔😢💔🎵'}
-              </div>
-              <p className="text-sm text-gray-300">
-                {gameResult === 'won' ? 'Playing victory song...' : 'Playing defeat song...'}
-              </p>
-            </div>
-          )}
-          
           <button
             onClick={() => setShowGame(false)}
             className="bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded-lg font-medium transition-colors"
