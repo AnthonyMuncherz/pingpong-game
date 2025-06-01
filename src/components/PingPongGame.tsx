@@ -273,7 +273,7 @@ export const PingPongGame: React.FC = () => {
       )}
 
       <div className="mt-4 text-center text-sm text-gray-400">
-        <p>Controls: ↑↓ Arrow Keys or W/S keys</p>
+        <p>Controls: Move mouse up/down to control your paddle</p>
         <p>You are: Player {playerId + 1} {playerId === 0 ? '(Left)' : '(Right)'}</p>
       </div>
 
