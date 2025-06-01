@@ -266,7 +266,7 @@ export const PingPongGame: React.FC = () => {
             ref={canvasRef}
             width={gameSettings.CANVAS_WIDTH}
             height={gameSettings.CANVAS_HEIGHT}
-            className="block"
+            className="block cursor-none"
             style={{ imageRendering: 'pixelated' }}
           />
         </div>
