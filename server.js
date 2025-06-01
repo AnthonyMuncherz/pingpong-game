@@ -37,6 +37,8 @@ function createNewRoom() {
       velocityY: GAME_SETTINGS.BALL_SPEED * (Math.random() > 0.5 ? 1 : -1)
     },
     gameState: 'waiting',
+    countdown: null, // Timer countdown state
+    countdownStartTime: null,
     createdAt: new Date()
   };
 }
@@ -139,7 +141,8 @@ app.prepare().then(() => {
         id: socket.id,
         name: playerName,
         position: GAME_SETTINGS.CANVAS_HEIGHT / 2 - GAME_SETTINGS.PADDLE_HEIGHT / 2,
-        score: 0
+        score: 0,
+        ready: false // Ready check status
       });
 
       socket.join(room.id);
@@ -149,11 +152,41 @@ app.prepare().then(() => {
         gameSettings: GAME_SETTINGS 
       });
 
-      // Start game if 2 players
+      // Check if both players ready when 2 players in room
       if (room.players.length === 2) {
-        room.gameState = 'playing';
-        io.to(room.id).emit('game-start', room);
-        console.log(`Game start in room: ${room.id}`);
+        room.gameState = 'ready-check';
+        console.log(`Ready check started in room: ${room.id}`);
+      }
+
+      io.to(room.id).emit('room-update', room);
+    });
+
+    // Handle ready check
+    socket.on('player-ready', (data) => {
+      const room = Array.from(gameRooms.values()).find(r => 
+        r.players.some(p => p.id === socket.id)
+      );
+
+      if (!room || room.gameState !== 'ready-check') return;
+
+      const player = room.players.find(p => p.id === socket.id);
+      if (!player) return;
+
+      player.ready = data.ready;
+      console.log(`Player ${player.name} ready status: ${player.ready}`);
+
+      // Check if both players ready
+      const allReady = room.players.length === 2 && room.players.every(p => p.ready);
+      
+      if (allReady) {
+        // Start countdown timer
+        room.gameState = 'countdown';
+        room.countdown = 5; // 5 second countdown
+        room.countdownStartTime = Date.now();
+        console.log(`Countdown started in room: ${room.id}`);
+        
+        // Reset ready status for next game
+        room.players.forEach(p => p.ready = false);
       }
 
       io.to(room.id).emit('room-update', room);
@@ -204,9 +237,31 @@ app.prepare().then(() => {
     });
   });
 
-  // Game loop utk update ball position - 60 FPS
+  // Game loop utk update ball position & countdown - 60 FPS
   setInterval(() => {
     gameRooms.forEach((room) => {
+      // Handle countdown timer
+      if (room.gameState === 'countdown' && room.countdownStartTime) {
+        const elapsed = (Date.now() - room.countdownStartTime) / 1000;
+        const remaining = Math.ceil(5 - elapsed);
+        
+        if (remaining !== room.countdown) {
+          room.countdown = remaining;
+          io.to(room.id).emit('countdown-update', { countdown: remaining });
+        }
+        
+        // Start game when countdown reaches 0
+        if (remaining <= 0) {
+          room.gameState = 'playing';
+          room.countdown = null;
+          room.countdownStartTime = null;
+          resetBall(room); // Reset ball position for new game
+          io.to(room.id).emit('game-start', room);
+          console.log(`Game started in room: ${room.id}`);
+        }
+      }
+      
+      // Handle ball physics during gameplay
       if (room.gameState === 'playing' && room.players.length === 2) {
         updateBallPosition(room);
         io.to(room.id).emit('game-update', room);

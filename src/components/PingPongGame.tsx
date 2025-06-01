@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { useSocket } from '@/hooks/useSocket';
+import { timerAudio } from '@/utils/audioUtils';
 
 export const PingPongGame: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -17,9 +18,11 @@ export const PingPongGame: React.FC = () => {
     gameRoom,
     gameSettings,
     error,
+    countdown,
     joinRoom,
     createRoom,
-    movePaddle
+    movePaddle,
+    setPlayerReady
   } = useSocket();
 
   // Handle mouse movement utk paddle control
@@ -63,6 +66,18 @@ export const PingPongGame: React.FC = () => {
       window.removeEventListener('mousemove', handleMouseMove);
     };
   }, [movePaddle, gameSettings, canvasRef, gameRoom, playerId, showGame]);
+
+  // Handle countdown audio effects
+  useEffect(() => {
+    if (!timerAudio) return; // Skip if audio not available (SSR)
+    
+    if (countdown !== null && countdown > 0) {
+      timerAudio.playCountdownBeep(countdown, 5);
+    } else if (countdown === 0) {
+      // Game starting sound when countdown finishes
+      setTimeout(() => timerAudio.playGameStartSound(), 200);
+    }
+  }, [countdown]);
 
   // Render game on canvas
   useEffect(() => {
@@ -151,6 +166,10 @@ export const PingPongGame: React.FC = () => {
 
   const handleCreateRoom = () => {
     if (playerName.trim()) {
+      // Enable audio on user interaction
+      if (timerAudio && timerAudio.audioContext?.state === 'suspended') {
+        timerAudio.audioContext.resume();
+      }
       createRoom(playerName.trim());
       setShowGame(true);
     }
@@ -158,6 +177,10 @@ export const PingPongGame: React.FC = () => {
 
   const handleJoinRoom = () => {
     if (playerName.trim() && inputRoomCode.trim()) {
+      // Enable audio on user interaction
+      if (timerAudio && timerAudio.audioContext?.state === 'suspended') {
+        timerAudio.audioContext.resume();
+      }
       joinRoom(inputRoomCode.trim().toUpperCase(), playerName.trim());
       setShowGame(true);
     }
@@ -169,6 +192,10 @@ export const PingPongGame: React.FC = () => {
     switch (gameRoom.gameState) {
       case 'waiting':
         return `Tunggu player lain... Room Code: ${roomCode}`;
+      case 'ready-check':
+        return 'Both players joined! Click READY when you\'re prepared to play';
+      case 'countdown':
+        return countdown ? `Game starting in ${countdown}...` : 'Get ready!';
       case 'playing':
         return 'Game dah start! Move mouse up/down utk control paddle';
       case 'finished':
@@ -257,6 +284,52 @@ export const PingPongGame: React.FC = () => {
           <p className="text-sm text-gray-400 mt-2">
             Share room code "{roomCode}" with your friend to start playing!
           </p>
+        )}
+        
+        {/* Ready Check Button */}
+        {gameRoom?.gameState === 'ready-check' && (
+          <div className="mt-4">
+            <div className="mb-3">
+              <p className="text-sm text-gray-300 mb-2">Players Ready Status:</p>
+              <div className="flex justify-center space-x-4 text-sm">
+                {gameRoom.players.map((player, index) => (
+                  <div key={player.id} className="flex items-center space-x-2">
+                    <span className={`w-3 h-3 rounded-full ${player.ready ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                    <span className={index === playerId ? 'font-bold text-blue-400' : 'text-gray-300'}>
+                      {player.name} {index === playerId && '(You)'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            <div className="flex justify-center space-x-4">
+              <button
+                onClick={() => setPlayerReady(true)}
+                disabled={gameRoom.players[playerId]?.ready === true}
+                className="bg-green-600 hover:bg-green-700 disabled:bg-green-800 disabled:cursor-not-allowed px-6 py-2 rounded-lg font-medium transition-colors"
+              >
+                {gameRoom.players[playerId]?.ready ? '✓ Ready!' : 'Ready'}
+              </button>
+              <button
+                onClick={() => setPlayerReady(false)}
+                disabled={gameRoom.players[playerId]?.ready === false}
+                className="bg-red-600 hover:bg-red-700 disabled:bg-red-800 disabled:cursor-not-allowed px-6 py-2 rounded-lg font-medium transition-colors"
+              >
+                Not Ready
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Countdown Display */}
+        {gameRoom?.gameState === 'countdown' && countdown !== null && (
+          <div className="mt-4">
+            <div className="text-6xl font-bold text-yellow-400 animate-pulse">
+              {countdown > 0 ? countdown : 'GO!'}
+            </div>
+            <p className="text-sm text-gray-400 mt-2">Get your mouse ready!</p>
+          </div>
         )}
       </div>
 

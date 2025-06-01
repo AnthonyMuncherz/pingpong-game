@@ -6,6 +6,7 @@ interface Player {
   name: string;
   position: number;
   score: number;
+  ready?: boolean;
 }
 
 interface Ball {
@@ -19,7 +20,9 @@ interface GameRoom {
   id: string;
   players: Player[];
   ball: Ball;
-  gameState: 'waiting' | 'playing' | 'paused' | 'finished';
+  gameState: 'waiting' | 'ready-check' | 'countdown' | 'playing' | 'paused' | 'finished';
+  countdown?: number | null;
+  countdownStartTime?: Date | null;
   createdAt: Date;
 }
 
@@ -42,6 +45,7 @@ export const useSocket = () => {
   const [gameRoom, setGameRoom] = useState<GameRoom | null>(null);
   const [gameSettings, setGameSettings] = useState<GameSettings | null>(null);
   const [error, setError] = useState<string>('');
+  const [countdown, setCountdown] = useState<number | null>(null);
 
   useEffect(() => {
     // Initialize socket connection
@@ -94,6 +98,11 @@ export const useSocket = () => {
       setGameRoom(room);
     });
 
+    socket.on('countdown-update', (data: { countdown: number }) => {
+      console.log('Countdown update:', data.countdown);
+      setCountdown(data.countdown);
+    });
+
     // Cleanup on unmount
     return () => {
       socket.disconnect();
@@ -118,6 +127,12 @@ export const useSocket = () => {
     }
   };
 
+  const setPlayerReady = (ready: boolean) => {
+    if (socketRef.current && gameRoom?.gameState === 'ready-check') {
+      socketRef.current.emit('player-ready', { ready });
+    }
+  };
+
   return {
     connected,
     roomCode,
@@ -125,8 +140,10 @@ export const useSocket = () => {
     gameRoom,
     gameSettings,
     error,
+    countdown,
     joinRoom,
     createRoom,
-    movePaddle
+    movePaddle,
+    setPlayerReady
   };
 }; 

@@ -17,30 +17,38 @@ pingpong-game/
 │   │   └── api/socket/route.ts   # Backup Socket.io API route
 │   ├── components/
 │   │   └── PingPongGame.tsx      # Main game component dgn canvas rendering
-│   └── hooks/
-│       └── useSocket.ts          # Socket.io hook utk state management
+│   ├── hooks/
+│   │   └── useSocket.ts          # Socket.io hook utk state management
+│   └── utils/
+│       └── audioUtils.ts         # Web Audio API utk timer sounds
 ```
 
 ## Game Features Implemented
 - [x] Real-time multiplayer via Socket.io
 - [x] Room-based system dgn 6-digit codes
 - [x] Canvas-based game rendering
-- [x] Keyboard controls (Arrow keys + WASD)
+- [x] Mouse controls (move mouse up/down)
 - [x] Score tracking (first to 5 wins)
 - [x] Ball physics dgn collision detection
 - [x] Player disconnect handling
 - [x] Responsive UI dgn Tailwind
+- [x] Ready check system before game starts
+- [x] 5-second countdown timer with audio
+- [x] Web Audio API integration for timer sounds
 
 ## Socket.io Events Architecture
 ### Client → Server:
 - `join-room` - Join/create room dgn player name
+- `player-ready` - Set ready status for countdown
 - `paddle-move` - Move paddle up/down
 - `disconnect` - Auto cleanup when player leaves
 
 ### Server → Client:
 - `room-joined` - Success join dgn room code & player ID
 - `room-error` - Error messages (room full, etc)
-- `game-start` - Start when 2 players ready
+- `room-update` - Room state changes (players, ready status)
+- `countdown-update` - Timer countdown updates
+- `game-start` - Start when countdown finishes
 - `game-update` - Real-time state updates at 60 FPS
 - `player-left` - Handle disconnections
 
