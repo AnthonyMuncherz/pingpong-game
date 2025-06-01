@@ -10,6 +10,7 @@ export const PingPongGame: React.FC = () => {
   const [inputRoomCode, setInputRoomCode] = useState('');
   const [showGame, setShowGame] = useState(false);
   const [mouseY, setMouseY] = useState(0);
+  const [gameResult, setGameResult] = useState<'won' | 'lost' | null>(null);
 
   const {
     connected,
@@ -78,6 +79,36 @@ export const PingPongGame: React.FC = () => {
       setTimeout(() => timerAudio.playGameStartSound(), 200);
     }
   }, [countdown]);
+
+  // Handle game finish and play victory/lose sounds
+  useEffect(() => {
+    if (!timerAudio || !gameRoom || !gameSettings) return;
+
+    // Check if game just finished
+    if (gameRoom.gameState === 'finished') {
+      const currentPlayer = gameRoom.players[playerId];
+      const opponent = gameRoom.players.find((_, index) => index !== playerId);
+      
+      if (currentPlayer && opponent) {
+        const currentPlayerWon = currentPlayer.score >= gameSettings.WINNING_SCORE;
+        const newResult = currentPlayerWon ? 'won' : 'lost';
+        
+        // Only play sound if this is a new result
+        if (gameResult !== newResult) {
+          setGameResult(newResult);
+          
+          if (currentPlayerWon) {
+            setTimeout(() => timerAudio.playVictorySound(), 300);
+          } else {
+            setTimeout(() => timerAudio.playLoseSound(), 300);
+          }
+        }
+      }
+    } else {
+      // Reset result when game is not finished
+      setGameResult(null);
+    }
+  }, [gameRoom?.gameState, gameRoom?.players, playerId, gameSettings, timerAudio, gameResult]);
 
   // Render game on canvas
   useEffect(() => {
@@ -200,7 +231,14 @@ export const PingPongGame: React.FC = () => {
         return 'Game dah start! Move mouse up/down utk control paddle';
       case 'finished':
         const winner = gameRoom.players.find(p => p.score >= (gameSettings?.WINNING_SCORE || 5));
-        return `Game habis! ${winner?.name} menang! 🎉`;
+        const currentPlayer = gameRoom.players[playerId];
+        const didWin = currentPlayer && currentPlayer.score >= (gameSettings?.WINNING_SCORE || 5);
+        
+        if (didWin) {
+          return `🎉 VICTORY! You defeated ${gameRoom.players.find((_, i) => i !== playerId)?.name}! 🏆`;
+        } else {
+          return `💔 DEFEAT! ${winner?.name} won this round... Try again! 😤`;
+        }
       default:
         return '';
     }
@@ -351,12 +389,40 @@ export const PingPongGame: React.FC = () => {
       </div>
 
       {gameRoom?.gameState === 'finished' && (
-        <button
-          onClick={() => setShowGame(false)}
-          className="mt-4 bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded-lg font-medium transition-colors"
-        >
-          Back to Menu
-        </button>
+        <div className="mt-4 text-center">
+          {gameResult && (
+            <div className={`mb-4 p-4 rounded-lg ${gameResult === 'won' ? 'bg-green-900 border-green-500' : 'bg-red-900 border-red-500'} border-2`}>
+              <div className={`text-4xl mb-2 ${gameResult === 'won' ? 'animate-bounce' : 'animate-pulse'}`}>
+                {gameResult === 'won' ? '🎵🎉🏆🎉🎵' : '🎵💔😢💔🎵'}
+              </div>
+              <p className="text-sm text-gray-300">
+                {gameResult === 'won' ? 'Playing victory song...' : 'Playing defeat song...'}
+              </p>
+            </div>
+          )}
+          
+          <button
+            onClick={() => setShowGame(false)}
+            className="bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded-lg font-medium transition-colors"
+          >
+            Back to Menu
+          </button>
+          
+          <div className="mt-2 flex justify-center space-x-2 text-xs text-gray-400">
+            <button
+              onClick={() => timerAudio?.playVictorySound()}
+              className="hover:text-green-400 transition-colors"
+            >
+              🔊 Play Victory Song
+            </button>
+            <button
+              onClick={() => timerAudio?.playLoseSound()}
+              className="hover:text-red-400 transition-colors"
+            >
+              🔊 Play Defeat Song
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

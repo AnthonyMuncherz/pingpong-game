@@ -14,10 +14,29 @@ export const testAudio = () => {
   // Test game start sound
   setTimeout(() => timerAudio.playGameStartSound(), 5600);
   
-  console.log('Audio test sequence started!');
+  // Test victory sound
+  setTimeout(() => timerAudio.playVictorySound(), 7000);
+  
+  // Test lose sound
+  setTimeout(() => timerAudio.playLoseSound(), 9500);
+  
+  console.log('Audio test sequence started! Full sequence: countdown → game start → victory → defeat');
+};
+
+// Individual test functions
+export const testVictory = () => {
+  console.log('Testing victory sound...');
+  timerAudio.playVictorySound();
+};
+
+export const testDefeat = () => {
+  console.log('Testing defeat sound...');
+  timerAudio.playLoseSound();
 };
 
 // Export for testing in browser console
 if (typeof window !== 'undefined') {
   (window as any).testAudio = testAudio;
+  (window as any).testVictory = testVictory;
+  (window as any).testDefeat = testDefeat;
 } 

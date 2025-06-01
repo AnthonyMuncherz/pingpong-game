@@ -35,6 +35,9 @@ pingpong-game/
 - [x] Ready check system before game starts
 - [x] 5-second countdown timer with audio
 - [x] Web Audio API integration for timer sounds
+- [x] Victory song when player wins (celebratory melody)
+- [x] Defeat song when player loses (sad descending melody)
+- [x] Personalized win/lose messages with emojis
 
 ## Socket.io Events Architecture
 ### Client → Server:
